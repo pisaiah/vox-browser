@@ -66,6 +66,8 @@ const (
 		'summary',
 		'ul',
 		'li',
+		'table',
+		'tr',
 	]
 )
 
@@ -157,6 +159,19 @@ fn (mut this HTMLElement) draw(ctx &ui.GraphicsContext) {
 
 	this.width = tw
 	this.height = hei
+
+	if tag_name == 'table' {
+		for i, mut child in this.children {
+			// mut cel := this.kids[i]
+			child.draw_with_offset(ctx, x, y)
+		}
+	}
+
+	if tag_name == 'tr' {
+	}
+
+	if tag_name == 'td' {
+	}
 
 	if y < ws.height && y > 0 {
 		if tag_name == 'button' {
