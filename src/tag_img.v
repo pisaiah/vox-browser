@@ -6,7 +6,9 @@ import net.http
 import os
 import encoding.base64
 
-fn (page &Webpage) handle_image(tag &html.Tag) &ui.Image {
+// NOTE: OLD
+
+fn (page &HPage) handle_image(tag &html.Tag) &ui.Image {
 	dump('HANDLE IMAGE')
 
 	src := tag.attributes['src']

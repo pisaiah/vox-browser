@@ -7,30 +7,6 @@ import gg
 import gx
 import os
 
-// old web engine
-struct Layout {
-mut:
-	page &Webpage
-	x    int
-	y    int
-	h    int
-	rh   int
-}
-
-struct HTMLElement {
-	ui.Component_A
-mut:
-	layout         &Layout
-	parent_element &HTMLElement
-	inner_text     string
-	display        string
-	tag            &html.Tag
-	// kids []&ui.Component
-	ui_elm &ui.Component
-	//= unsafe { nil }
-	kids []&HTMLElement
-}
-
 const (
 	block_tags = [
 		'address',
@@ -71,6 +47,30 @@ const (
 	]
 )
 
+// old web engine
+struct Layout {
+mut:
+	// page &Webpage
+	x  int
+	y  int
+	h  int
+	rh int
+}
+
+struct HTMLElement {
+	ui.Component_A
+mut:
+	// layout         &Layout
+	// parent_element &HTMLElement
+	inner_text string
+	display    string
+	tag        &html.Tag
+	// kids []&ui.Component
+	// ui_elm &ui.Component
+	//= unsafe { nil }
+	// kids []&HTMLElement
+}
+
 fn (mut this HTMLElement) get_font_size(tn string) int {
 	// defaults:
 	// h1 = 2em
@@ -104,6 +104,7 @@ fn (mut this HTMLElement) get_font_size(tn string) int {
 	return int(val)
 }
 
+/*
 fn (mut this HTMLElement) draw(ctx &ui.GraphicsContext) {
 	tag_name := this.tag.name.to_lower()
 
@@ -246,23 +247,6 @@ fn (mut this HTMLElement) load_kids() {
 			tag: tag
 		}
 
-		/*
-		if tag.name == 'img' {
-			this.ui_elm = this.layout.page.handle_image(mut this.layout.page.)
-		}*/
-
-		/*
-		el.subscribe_event('draw', fn [mut el] (mut e ui.MouseEvent) {
-			if el.tag.name == 'img' {
-				//if el.ui_elm == unsafe { nil } {
-				unsafe {
-					el.ui_elm = el.layout.page.handle_image(mut e.ctx.win, el.tag)
-					el.add_child(el.ui_elm)
-					}
-			//	}
-			}
-		})*/
-
 		if tag.name == 'img' {
 			// el.ui_elm = el.layout.page.handle_image(el.tag)
 			// el.add_child(el.ui_elm)
@@ -369,3 +353,4 @@ fn (mut this Webpage) draw(ctx &ui.GraphicsContext) {
 
 fn (mut this Webpage) follow_url(url string) {
 }
+*/

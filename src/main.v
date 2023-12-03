@@ -11,7 +11,7 @@ import os
 struct App {
 mut:
 	win &ui.Window
-	wp  &Webpage
+	wp  &HPage
 }
 
 fn main() {
@@ -54,7 +54,7 @@ fn main() {
 	mut go_btn := ui.Button.new(text: 'Go')
 	mut save_btn := ui.Button.new(text: 'Save')
 
-	mut wp := &Webpage{
+	mut wp := &HPage{
 		x: 0
 		y: 0
 		width: 600
