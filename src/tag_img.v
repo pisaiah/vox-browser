@@ -35,7 +35,8 @@ fn (page &Webpage) handle_image(tag &html.Tag) &ui.Image {
 		os.write_file(out, decode_str) or {}
 
 		gg_img := ui.image_from_file(out)
-		/*if w == -1 {
+		/*
+		if w == -1 {
 			w = gg_img.width
 			h = gg_img.height
 		}
@@ -61,18 +62,18 @@ fn (page &Webpage) handle_image(tag &html.Tag) &ui.Image {
 		}
 	}
 
-	/*gg_img := win.gg.create_image(out)
+	/*
+	gg_img := win.gg.create_image(out)
 	if w == -1 {
 		w = gg_img.width
 		h = gg_img.height
 	}*/
 
-	//img := ui.image_with_size(win, gg_img, w, h)
+	// img := ui.image_with_size(win, gg_img, w, h)
 	img := ui.image_from_file(out)
 
 	return img
 }
-
 
 // Eg: /test -> https://example.com/test
 fn format_url(ref string, page_url string) string {
