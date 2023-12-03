@@ -6,9 +6,11 @@ import net.http
 import os
 import encoding.base64
 
+// handle_image
+
 // NOTE: OLD
 
-fn (page &HPage) handle_image(tag &html.Tag) &ui.Image {
+fn (mut page HPage) handle_image(tag &html.Tag) &ui.Image {
 	dump('HANDLE IMAGE')
 
 	src := tag.attributes['src']
@@ -54,6 +56,8 @@ fn (page &HPage) handle_image(tag &html.Tag) &ui.Image {
 
 	println('Loading image: ' + fixed_src)
 
+	// page.status = 'Loading image: ${fixed_src} ...'
+
 	if os.exists(fixed_src) {
 		// Local file
 		out = fixed_src
@@ -72,7 +76,14 @@ fn (page &HPage) handle_image(tag &html.Tag) &ui.Image {
 	}*/
 
 	// img := ui.image_with_size(win, gg_img, w, h)
-	img := ui.image_from_file(out)
+	mut img := ui.Image.new(file: out)
+
+	if w != -1 {
+		img.width = w
+		img.height = h
+	}
+
+	// page.status = 'Done'
 
 	return img
 }

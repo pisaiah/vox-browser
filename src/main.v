@@ -10,8 +10,9 @@ import os
 @[heap]
 struct App {
 mut:
-	win &ui.Window
-	wp  &HPage
+	win    &ui.Window
+	wp     &HPage
+	status &string
 }
 
 fn main() {
@@ -22,9 +23,12 @@ fn main() {
 		font_size: 16
 	)
 
+	strr := ''
+
 	mut app := &App{
 		win: win
 		wp: unsafe { nil }
+		status: &strr
 	}
 
 	win.bar = ui.Menubar.new()
@@ -38,7 +42,7 @@ fn main() {
 
 	mut navbar := ui.Panel.new(layout: ui.BoxLayout.new(hgap: 5, vgap: 5, ori: 0))
 
-	mut field := ui.text_field(
+	mut field := ui.TextField.new(
 		text: 'https://example.com/'
 	)
 
@@ -63,19 +67,19 @@ fn main() {
 	app.wp = wp
 	wp.subscribe_event('draw', draw_wp_border)
 
-	// path := os.resource_abs_path('tests/index.html')
-	// wp.load('file://' + path)
+	path := os.resource_abs_path('src/assets/test.html')
+	wp.load('file://' + path)
 
-	wp.load('https://google.com')
+	// wp.load('https://google.com')
 
 	mut sv := ui.ScrollView.new(
 		view: wp
-		bounds: ui.Bounds{2, 2, 600, 400}
+		bounds: ui.Bounds{0, 0, 600, 400}
 	)
 	sv.subscribe_event('draw', fn (mut e ui.DrawEvent) {
-		ws := e.ctx.gg.window_size()
-		e.target.width = ws.width - 4
-		e.target.height = ws.height - 2 - e.target.y
+		// ws := e.ctx.gg.window_size()
+		// e.target.width = ws.width - 4
+		// e.target.height = ws.height - 2 - e.target.y
 	})
 
 	go_btn.subscribe_event('mouse_up', fn [mut field, mut wp] (mut e ui.MouseEvent) {
@@ -95,8 +99,20 @@ fn main() {
 	navbar.add_child(go_btn)
 	navbar.add_child(save_btn)
 
+	mut statbar := ui.Panel.new()
+
+	mut lbl := ui.Label.new(text: 'Hello world')
+	statbar.add_child(lbl)
+	statbar.set_bounds(0, 0, 30, 25)
+	lbl.subscribe_event('draw', fn [mut app] (mut e ui.DrawEvent) {
+		e.target.text = app.wp.status
+		e.target.height = e.ctx.line_height
+	})
+
 	cp.add_child_with_flag(navbar, ui.borderlayout_north)
 	cp.add_child_with_flag(sv, ui.borderlayout_center)
+	cp.add_child_with_flag(statbar, ui.borderlayout_south)
+
 	win.add_child(cp)
 
 	win.gg.run()
@@ -133,6 +149,7 @@ fn (mut app App) create_link_menu() &ui.MenuItem {
 		//'https://theoldnet.com/get?url=google.com&year=2004&scripts=false&decode=false'
 		//'https://theoldnet.com/get?url=google.com&year=2010&scripts=false&decode=false'
 		'https://theoldnet.com/get?url=google.com&year=2015&scripts=false&decode=false',
+		'https://news.ycombinator.com/',
 	]
 	for theme in links {
 		mut item := ui.MenuItem.new(
@@ -147,7 +164,7 @@ fn (mut app App) create_link_menu() &ui.MenuItem {
 
 fn (mut app App) link_menu_click(mut win ui.Window, com ui.MenuItem) {
 	text := com.text
-	app.wp.load(text)
+	go app.wp.load(text)
 }
 
 // MenuItem in the Theme section click event

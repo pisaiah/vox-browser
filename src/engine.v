@@ -4,10 +4,12 @@ import iui as ui
 import net.http
 import net.html
 import os
+import time
 
 struct HPage {
 	ui.Component_A
 mut:
+	status  string
 	url     string
 	content string
 	kids    []&HElement
@@ -38,10 +40,13 @@ fn (mut this HElement) draw_kids(ctx &ui.GraphicsContext) {
 		child.draw_with_offset(ctx, x, y)
 
 		// x += child.width
+		// dump(child.height)
 		y += child.height
 	}
 
-	// this.height = y - this.y
+	if y - this.y > 0 {
+		this.height = y - this.y
+	}
 }
 
 fn ft(s string) string {
@@ -52,6 +57,8 @@ fn ft(s string) string {
 }
 
 fn (mut this HPage) load(url string) {
+	start := time.now()
+	this.status = 'Loading "${url}"...'
 	this.children.clear()
 	this.kids.clear()
 	this.url = url
@@ -86,6 +93,8 @@ fn (mut this HPage) load(url string) {
 		resp.body = lines.join('\n')
 	}
 
+	an := time.now()
+
 	// TODO: Frogfind uses broken HTML (?)
 	fixed_text := resp.body.replace('Find!</font></a></b>', 'Find!</font></b></a>').replace('<p> </small></p>',
 		'<p></p>')
@@ -97,6 +106,11 @@ fn (mut this HPage) load(url string) {
 
 	mut el := this.make_element_from_tag(tag)
 	this.add_child(el)
+
+	end := time.now()
+	took := end - start
+
+	this.status = 'Done. | Total=${took} Render=${end - an} | VBrowser/0.1 '
 }
 
 fn (mut this HPage) draw(ctx &ui.GraphicsContext) {
@@ -112,7 +126,7 @@ fn (mut this HPage) draw(ctx &ui.GraphicsContext) {
 		y += child.height
 	}
 
-	// this.height = y - this.y
+	this.height = y - this.y
 }
 
 fn (mut this HPage) follow_url(url string) {
@@ -134,6 +148,7 @@ fn (mut this HPage) make_elements(root &html.Tag) {
 
 fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	println('MAKE EL: ${tag.name}')
+	this.status = 'Making ${tag.name} ...'
 
 	nam := tag.name
 
@@ -172,6 +187,17 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 			tag: tag
 			inner_text: tag.content
 			page: this
+		}
+		el.add_kids()
+		return el
+	}
+
+	if nam == 'img' {
+		mut el := &ImgElement{
+			tag: tag
+			inner_text: tag.content
+			page: this
+			img: unsafe { nil }
 		}
 		el.add_kids()
 		return el
