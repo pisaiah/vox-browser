@@ -18,6 +18,7 @@ pub fn StyleSheet.new() &StyleSheet {
 
 pub fn (mut this StyleSheet) clear() {
 	this.rules.clear()
+	this.rules = map[string]Properties{}
 }
 
 pub fn (mut this StyleSheet) parse(content []string) {
@@ -40,7 +41,11 @@ pub fn (mut this StyleSheet) parse(content []string) {
 
 pub fn (mut this StyleSheet) get_rule(selector string, prop string) ?string {
 	if selector in this.rules {
-		return this.rules[selector].values[prop]
+		val := this.rules[selector].values[prop]
+		if val.len == 0 {
+			return none
+		}
+		return val
 	}
 	return none
 }

@@ -70,6 +70,20 @@ pub fn (com &HElement) debug_draw(comm &ui.Component, ctx &ui.GraphicsContext) {
 }
 
 fn (mut el HElement) draw(ctx &ui.GraphicsContext) {
+	bg := el.page.styles.get_rule(el.tag.name, 'background')
+
+	if bg != none {
+		dump('${el.tag.name} ${bg}')
+		val := bg or { '' }
+
+		if val.contains('rgb') {
+			spl := val.split('(')[1].split(')')[0].split(',')
+			color := gx.rgb(spl[0].u8(), spl[1].u8(), spl[2].u8())
+			// dump('${el.width} ${el.height}')
+			ctx.gg.draw_rect_filled(el.x, el.y, el.width, el.height, color)
+		}
+	}
+
 	el.draw_kids(ctx)
 }
 

@@ -6,6 +6,35 @@ import net.http
 import os
 import encoding.base64
 
+// PLACEHOLDER
+struct ImgElement {
+	HElement
+mut:
+	inner_text string
+	img        &ui.Image
+}
+
+fn (mut el ImgElement) draw(ctx &ui.GraphicsContext) {
+	if isnil(el.img) {
+		el.img = el.page.handle_image(el.tag)
+		el.width = el.img.width
+		el.height = el.img.height
+
+		el.add_child(el.img)
+	}
+
+	el.width = el.img.width
+	el.height = el.img.height
+
+	for mut kid in el.children {
+		kid.draw_with_offset(ctx, el.x, el.y)
+	}
+
+	// ctx.gg.draw_rect_empty(el.x, el.y, el.width, el.height, gx.red)
+
+	el.HElement.draw(ctx)
+}
+
 // TODO: improve
 fn (mut page HPage) handle_image(tag &html.Tag) &ui.Image {
 	dump('HANDLE IMAGE')

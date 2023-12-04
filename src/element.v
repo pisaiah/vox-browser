@@ -26,6 +26,33 @@ fn (mut el TextElement) draw(ctx &ui.GraphicsContext) {
 	el.debug_draw(el, ctx)
 	// println('TEXT DRAW ${el.tag.name} ${el.kids.len} ${ft(el.inner_text)}')
 
+	cfg_def := gx.TextCfg{
+		size: ctx.font_size
+	}
+
+	fsr := el.page.styles.get_rule(el.tag.name, 'font-size')
+
+	mut fs := ctx.font_size
+	if fsr != none {
+		fss := fsr or { '' }
+
+		if fss.contains('em') {
+			fs = ctx.font_size * fss.int()
+		}
+
+		if fss.contains('px') {
+			fs = fss.int()
+		}
+
+		dump(fsr)
+	}
+
+	cfg := gx.TextCfg{
+		size: fs
+	}
+
+	ctx.gg.set_text_cfg(cfg)
+
 	if el.inner_text.len > 0 {
 		tw := ctx.text_width(el.inner_text)
 		el.width = tw
@@ -37,7 +64,9 @@ fn (mut el TextElement) draw(ctx &ui.GraphicsContext) {
 	ws := ctx.gg.window_size()
 
 	if !(el.y > ws.height || el.y < 0) {
-		ctx.draw_text(el.x, el.y, el.inner_text, 0)
+		ctx.draw_text(el.x, el.y, el.inner_text, 0, cfg)
+
+		ctx.gg.set_text_cfg(cfg_def)
 	}
 
 	el.HElement.draw(ctx)
@@ -95,6 +124,8 @@ mut:
 fn (mut el BodyElement) draw(ctx &ui.GraphicsContext) {
 	el.debug_draw(el, ctx)
 
+	el.width = el.page.width
+
 	el.HElement.draw(ctx)
 }
 
@@ -137,38 +168,6 @@ fn (mut el InputElement) draw(ctx &ui.GraphicsContext) {
 	}
 
 	ctx.gg.draw_rect_empty(el.x, el.y, el.width, el.height, gx.green)
-
-	el.HElement.draw(ctx)
-}
-
-// PLACEHOLDER
-struct ImgElement {
-	HElement
-mut:
-	inner_text string
-	img        &ui.Image
-}
-
-fn (mut el ImgElement) draw(ctx &ui.GraphicsContext) {
-	if isnil(el.img) {
-		el.img = el.page.handle_image(el.tag)
-		el.width = el.img.width
-		el.height = el.img.height
-
-		el.add_child(el.img)
-	}
-
-	el.width = el.img.width
-	el.height = el.img.height
-
-	// el.img.draw_with_offset(ctx, el.x, el.y)
-	for mut kid in el.children {
-		// if mut kid is ui.Image {
-		kid.draw_with_offset(ctx, el.x, el.y)
-		//}
-	}
-
-	ctx.gg.draw_rect_empty(el.x, el.y, el.width, el.height, gx.red)
 
 	el.HElement.draw(ctx)
 }
