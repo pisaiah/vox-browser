@@ -6,10 +6,7 @@ import net.http
 import os
 import encoding.base64
 
-// handle_image
-
-// NOTE: OLD
-
+// TODO: improve
 fn (mut page HPage) handle_image(tag &html.Tag) &ui.Image {
 	dump('HANDLE IMAGE')
 
@@ -38,15 +35,7 @@ fn (mut page HPage) handle_image(tag &html.Tag) &ui.Image {
 		out := os.real_path(cache + '/base64-' + os.base(encoded) + '.png')
 		os.write_file(out, decode_str) or {}
 
-		gg_img := ui.image_from_file(out)
-		/*
-		if w == -1 {
-			w = gg_img.width
-			h = gg_img.height
-		}
-
-		img := ui.image_with_size(win, gg_img, w, h)*/
-
+		gg_img := ui.Image.new(file: out)
 		return gg_img
 	}
 
@@ -68,19 +57,13 @@ fn (mut page HPage) handle_image(tag &html.Tag) &ui.Image {
 		}
 	}
 
-	/*
-	gg_img := win.gg.create_image(out)
-	if w == -1 {
-		w = gg_img.width
-		h = gg_img.height
-	}*/
-
-	// img := ui.image_with_size(win, gg_img, w, h)
 	mut img := ui.Image.new(file: out)
 
 	if w != -1 {
 		img.width = w
 		img.height = h
+	} else {
+		img.pack()
 	}
 
 	// page.status = 'Done'

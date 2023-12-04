@@ -5,14 +5,28 @@ import net.http
 import net.html
 import os
 import time
+import gx
+
+struct Layout {
+mut:
+	// page &Webpage
+	x  int
+	y  int
+	h  int
+	rh int
+}
 
 struct HPage {
 	ui.Component_A
 mut:
-	status  string
-	url     string
-	content string
-	kids    []&HElement
+	status    string
+	url       string
+	content   string
+	kids      []&HElement
+	layout    &Layout
+	debug     bool
+	debug_dat string = ''
+	styles    &StyleSheet
 }
 
 struct HElement {
@@ -25,28 +39,109 @@ mut:
 	//&HElement
 }
 
+pub fn (com &HElement) debug_draw(comm &ui.Component, ctx &ui.GraphicsContext) {
+	if !com.page.debug {
+		return
+	}
+
+	tn := comm.type_name().replace('Element', '')
+	txt := tn + ' / ${com.tag.name}' // comm.type_name().replace('Element', '')
+
+	if com.tag.name != tn.to_lower() {
+		println('Missing Tag Impl: ${com.tag.name}, Currently: ${tn}')
+	}
+
+	if !com.page.debug_dat.contains(txt) && com.page.debug_dat.len > 0 {
+		return
+	}
+
+	tw := ctx.text_width(txt)
+	tx := com.x + (com.width / 2) - (tw / 2)
+	ty := com.y + (com.height / 2) - (ctx.line_height / 2)
+
+	x2 := com.x + com.width
+	y2 := com.y + com.height
+
+	ctx.gg.draw_rect_filled(tx, ty, tw, ctx.line_height, gx.rgba(250, 0, 0, 255))
+
+	ctx.draw_text(tx, ty, txt, 0)
+
+	ctx.gg.draw_rect_empty(com.x, com.y, com.width, com.height, gx.red)
+}
+
 fn (mut el HElement) draw(ctx &ui.GraphicsContext) {
-	// test
-	// dump('H DRAW')
-	ctx.draw_text(el.x, el.y, el.inner_text, 0)
 	el.draw_kids(ctx)
 }
 
 fn (mut this HElement) draw_kids(ctx &ui.GraphicsContext) {
-	mut x := this.x
+	this.page.layout.rh = 0
+
+	mut rh := 0
+
+	xx := if this.tag.name == 'center' {
+		// dump(this.width)
+		this.x // + (this.page.width / 2) - (this.width / 2)
+	} else {
+		this.x
+	}
+
+	mut x := xx
 	mut y := this.y
 
 	for i, mut child in this.children {
+		if this.tag.children.len <= i {
+			continue
+		}
+
+		tag_name := this.tag.children[i].name
+
+		cc := child.children.len
+
+		if tag_name in block_tags {
+			// this.page.layout.x = 8 // default margin
+			// this.page.layout.y += this.page.layout.rh
+			// this.page.layout.h = 0
+
+			// this.page.layout.h = 0
+			child.width = this.page.width
+
+			y += rh // this.page.layout.rh
+			x = xx
+			rh = 0
+		} else {
+			if child.height > rh {
+				rh = child.height // + 5
+			}
+		}
+
 		child.draw_with_offset(ctx, x, y)
 
-		// x += child.width
-		// dump(child.height)
-		y += child.height
+		if child.height > rh {
+			rh = child.height // + 5
+		}
+
+		if tag_name in block_tags {
+			y += child.height
+			rh = 0
+		} else {
+			x += child.width
+		}
 	}
 
 	if y - this.y > 0 {
 		this.height = y - this.y
+	} else {
+		if rh > 0 {
+			this.height = rh
+		}
 	}
+
+	if this.width == 0 {
+		this.width = x - xx
+	}
+	// dump(this.width)
+
+	// dump(this.height)
 }
 
 fn ft(s string) string {
@@ -62,6 +157,10 @@ fn (mut this HPage) load(url string) {
 	this.children.clear()
 	this.kids.clear()
 	this.url = url
+	this.styles.clear()
+
+	default_css := os.read_lines(os.resource_abs_path('src/assets/default.css')) or { [''] }
+	this.styles.parse(default_css)
 
 	config := http.FetchConfig{
 		user_agent: 'VBrowser/0.1 V/0.4.3'
@@ -151,8 +250,9 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	this.status = 'Making ${tag.name} ...'
 
 	nam := tag.name
+	con := tag.content.trim_space()
 
-	if nam == 'script' || nam == '!doctype' {
+	if nam == 'script' || nam == '!doctype' || nam == 'title' {
 		mut el := &EmptyElement{
 			tag: tag
 			inner_text: tag.content
@@ -165,7 +265,7 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	if nam == 'html' {
 		mut el := &HtmlElement{
 			tag: tag
-			inner_text: tag.content
+			inner_text: con
 			page: this
 		}
 		el.add_kids()
@@ -175,7 +275,7 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	if nam == 'meta' {
 		mut el := &MetaElement{
 			tag: tag
-			inner_text: tag.content
+			inner_text: con
 			page: this
 		}
 		el.add_kids()
@@ -185,9 +285,13 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	if nam == 'style' {
 		mut el := &StyleElement{
 			tag: tag
-			inner_text: tag.content
+			inner_text: con
 			page: this
 		}
+
+		dump(con)
+		this.styles.parse(con.split_into_lines())
+
 		el.add_kids()
 		return el
 	}
@@ -195,7 +299,7 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 	if nam == 'img' {
 		mut el := &ImgElement{
 			tag: tag
-			inner_text: tag.content
+			inner_text: con
 			page: this
 			img: unsafe { nil }
 		}
@@ -203,9 +307,39 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 		return el
 	}
 
+	if nam == 'input' {
+		mut el := &InputElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+
+	if nam == 'body' {
+		mut el := &BodyElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+
+	if nam == 'div' {
+		mut el := &DivElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+
 	mut el := &TextElement{
 		tag: tag
-		inner_text: tag.content
+		inner_text: con
 		page: this
 	}
 	el.add_kids()

@@ -57,12 +57,20 @@ fn main() {
 	mut home_btn := ui.Button.new(text: 'Home')
 	mut go_btn := ui.Button.new(text: 'Go')
 	mut save_btn := ui.Button.new(text: 'Save')
+	mut debug_btn := ui.Button.new(text: 'Debug')
+
+	mut debug_field := ui.TextField.new(
+		text: ''
+	)
+	debug_field.set_bounds(0, 0, 100, 25)
 
 	mut wp := &HPage{
 		x: 0
 		y: 0
 		width: 600
 		height: 400
+		layout: &Layout{}
+		styles: StyleSheet.new()
 	}
 	app.wp = wp
 	wp.subscribe_event('draw', draw_wp_border)
@@ -92,12 +100,19 @@ fn main() {
 		os.write_file(to_save, wp.content) or { println(err) }
 	})
 
+	debug_btn.subscribe_event('mouse_up', fn [mut wp, mut debug_field] (mut e ui.MouseEvent) {
+		wp.debug_dat = debug_field.text
+		wp.debug = !wp.debug
+	})
+
 	navbar.add_child(back_btn)
 	navbar.add_child(for_btn)
 	navbar.add_child(home_btn)
 	navbar.add_child(field)
 	navbar.add_child(go_btn)
 	navbar.add_child(save_btn)
+	navbar.add_child(debug_btn)
+	navbar.add_child(debug_field)
 
 	mut statbar := ui.Panel.new()
 
@@ -140,6 +155,9 @@ fn (mut app App) create_link_menu() &ui.MenuItem {
 		'tests/index.html',
 		'tests/test.html',
 		'tests/google_bar.html',
+		'src/assets/frogfind.html',
+		'src/assets/test.html',
+		'src/assets/mytest.html',
 		'https://google.com',
 		'https://example.com',
 		'http://frogfind.com',
