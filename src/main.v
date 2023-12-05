@@ -18,7 +18,7 @@ mut:
 fn main() {
 	mut win := ui.Window.new(
 		title: 'Web Browser'
-		width: 640
+		width: 700
 		height: 480
 		font_size: 16
 	)
@@ -32,7 +32,17 @@ fn main() {
 	}
 
 	win.bar = ui.Menubar.new()
-	win.bar.add_child(ui.MenuItem.new(text: 'File'))
+	win.bar.add_child(
+		ui.MenuItem.new(
+			text: 'File'
+			children: [
+				ui.MenuItem.new(
+					text: 'Save'
+					click_event_fn: app.page_save_menu_click
+				)
+			]
+		)
+	)
 	win.bar.add_child(app.create_link_menu())
 	win.bar.add_child(create_theme_menu())
 
@@ -49,20 +59,19 @@ fn main() {
 	navbar.set_bounds(0, 0, 600, 100)
 	navbar.subscribe_event('draw', draw_border)
 
-	field.set_bounds(0, 0, 300, 25)
+	field.set_bounds(0, 0, 500, 25)
 
 	mut back_btn := ui.Button.new(text: '<')
 	mut for_btn := ui.Button.new(text: '>')
 
-	mut home_btn := ui.Button.new(text: 'Home')
+	// mut home_btn := ui.Button.new(text: 'H')
 	mut go_btn := ui.Button.new(text: 'Go')
-	mut save_btn := ui.Button.new(text: 'Save')
-	mut debug_btn := ui.Button.new(text: 'Debug')
+	mut debug_btn := ui.Button.new(text: 'B')
 
 	mut debug_field := ui.TextField.new(
 		text: ''
 	)
-	debug_field.set_bounds(0, 0, 100, 25)
+	debug_field.set_bounds(0, 0, 80, 25)
 
 	mut wp := &HPage{
 		x: 0
@@ -71,6 +80,7 @@ fn main() {
 		height: 400
 		layout: &Layout{}
 		styles: StyleSheet.new()
+		field: field
 	}
 	app.wp = wp
 	wp.subscribe_event('draw', draw_wp_border)
@@ -84,20 +94,9 @@ fn main() {
 		view: wp
 		bounds: ui.Bounds{0, 0, 600, 400}
 	)
-	sv.subscribe_event('draw', fn (mut e ui.DrawEvent) {
-		// ws := e.ctx.gg.window_size()
-		// e.target.width = ws.width - 4
-		// e.target.height = ws.height - 2 - e.target.y
-	})
 
 	go_btn.subscribe_event('mouse_up', fn [mut field, mut wp] (mut e ui.MouseEvent) {
-		wp.load(field.text)
-	})
-
-	save_btn.subscribe_event('mouse_up', fn [mut wp] (mut e ui.MouseEvent) {
-		to_save := os.resource_abs_path('save_output.html')
-
-		os.write_file(to_save, wp.content) or { println(err) }
+		go wp.load(field.text)
 	})
 
 	debug_btn.subscribe_event('mouse_up', fn [mut wp, mut debug_field] (mut e ui.MouseEvent) {
@@ -107,10 +106,9 @@ fn main() {
 
 	navbar.add_child(back_btn)
 	navbar.add_child(for_btn)
-	navbar.add_child(home_btn)
+	// navbar.add_child(home_btn)
 	navbar.add_child(field)
 	navbar.add_child(go_btn)
-	navbar.add_child(save_btn)
 	navbar.add_child(debug_btn)
 	navbar.add_child(debug_field)
 
@@ -152,22 +150,25 @@ fn (mut app App) create_link_menu() &ui.MenuItem {
 	mut theme_menu := ui.MenuItem.new(text: 'Links')
 
 	links := [
-		'tests/index.html',
-		'tests/test.html',
-		'tests/google_bar.html',
+		//'tests/index.html',
+		//'tests/test.html',
+		//'tests/google_bar.html',
 		'src/assets/frogfind.html',
 		'src/assets/test.html',
 		'src/assets/mytest.html',
+		'src/assets/vmod.html',
+		'src/assets/text.html',
 		'https://google.com',
 		'https://example.com',
 		'http://frogfind.com',
 		'http://68k.news',
 		'http://info.cern.ch',
 		'https://old.reddit.com',
-		//'https://theoldnet.com/get?url=google.com&year=2004&scripts=false&decode=false'
+		'https://theoldnet.com/get?url=google.com&year=2004&scripts=false&decode=false'
 		//'https://theoldnet.com/get?url=google.com&year=2010&scripts=false&decode=false'
-		'https://theoldnet.com/get?url=google.com&year=2015&scripts=false&decode=false',
+		//'https://theoldnet.com/get?url=google.com&year=2015&scripts=false&decode=false',
 		'https://news.ycombinator.com/',
+		'https://modules.vlang.io/gx.html'
 	]
 	for theme in links {
 		mut item := ui.MenuItem.new(
@@ -184,6 +185,12 @@ fn (mut app App) link_menu_click(mut win ui.Window, com ui.MenuItem) {
 	text := com.text
 	go app.wp.load(text)
 }
+
+fn (mut app App) page_save_menu_click(mut win ui.Window, com ui.MenuItem) {
+	to_save := os.resource_abs_path('save_output.html')
+	os.write_file(to_save, app.wp.content) or { println(err) }
+}
+
 
 // MenuItem in the Theme section click event
 fn theme_click(mut win ui.Window, com ui.MenuItem) {

@@ -12,19 +12,23 @@ struct ImgElement {
 mut:
 	inner_text string
 	img        &ui.Image
+	img_nil    bool
 }
 
 fn (mut el ImgElement) draw(ctx &ui.GraphicsContext) {
-	if isnil(el.img) {
-		el.img = el.page.handle_image(el.tag)
-		el.width = el.img.width
-		el.height = el.img.height
+	el.debug_draw(el, ctx)
 
-		el.add_child(el.img)
+	if isnil(el.img) && !el.img_nil {
+		el.img_nil = true
+	
+		el.set_img()
+		// go el.set_img()
 	}
 
-	el.width = el.img.width
-	el.height = el.img.height
+	if !isnil(el.img) {
+		el.width = el.img.width
+		el.height = el.img.height
+	}
 
 	for mut kid in el.children {
 		kid.draw_with_offset(ctx, el.x, el.y)
@@ -33,6 +37,13 @@ fn (mut el ImgElement) draw(ctx &ui.GraphicsContext) {
 	// ctx.gg.draw_rect_empty(el.x, el.y, el.width, el.height, gx.red)
 
 	el.HElement.draw(ctx)
+}
+
+fn (mut el ImgElement) set_img() {
+	el.img = el.page.handle_image(el.tag)
+	el.width = el.img.width
+	el.height = el.img.height
+	el.add_child(el.img)
 }
 
 // TODO: improve

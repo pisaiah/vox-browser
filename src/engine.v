@@ -27,6 +27,7 @@ mut:
 	debug     bool
 	debug_dat string = ''
 	styles    &StyleSheet
+	field     &ui.TextField
 }
 
 struct HElement {
@@ -40,16 +41,24 @@ mut:
 }
 
 pub fn (com &HElement) debug_draw(comm &ui.Component, ctx &ui.GraphicsContext) {
+	
+	mx := ctx.win.mouse_x
+	my := ctx.win.mouse_y
+	
+	if !ui.is_in(com, mx, my) {
+		return
+	}
+
 	if !com.page.debug {
 		return
 	}
 
 	tn := comm.type_name().replace('Element', '')
-	txt := tn + ' / ${com.tag.name}' // comm.type_name().replace('Element', '')
+	txt := if tn.to_lower() == com.tag.name { com.tag.name } else { '${com.tag.name}*' }
 
-	if com.tag.name != tn.to_lower() {
-		println('Missing Tag Impl: ${com.tag.name}, Currently: ${tn}')
-	}
+	//if com.tag.name != tn.to_lower() {
+		// println('Missing Tag Impl: ${com.tag.name}, Currently: ${tn}')
+	//}
 
 	if !com.page.debug_dat.contains(txt) && com.page.debug_dat.len > 0 {
 		return
@@ -63,8 +72,11 @@ pub fn (com &HElement) debug_draw(comm &ui.Component, ctx &ui.GraphicsContext) {
 	y2 := com.y + com.height
 
 	ctx.gg.draw_rect_filled(tx, ty, tw, ctx.line_height, gx.rgba(250, 0, 0, 255))
+	ctx.gg.draw_rect_empty(tx, ty, tw, ctx.line_height, gx.black)
 
-	ctx.draw_text(tx, ty, txt, 0)
+	ctx.draw_text(tx, ty, txt, 0, gx.TextCfg{
+		size: 12
+	})
 
 	ctx.gg.draw_rect_empty(com.x, com.y, com.width, com.height, gx.red)
 }
@@ -73,7 +85,7 @@ fn (mut el HElement) draw(ctx &ui.GraphicsContext) {
 	bg := el.page.styles.get_rule(el.tag.name, 'background')
 
 	if bg != none {
-		dump('${el.tag.name} ${bg}')
+		// dump('${el.tag.name} ${bg}')
 		val := bg or { '' }
 
 		if val.contains('rgb') {
@@ -81,6 +93,8 @@ fn (mut el HElement) draw(ctx &ui.GraphicsContext) {
 			color := gx.rgb(spl[0].u8(), spl[1].u8(), spl[2].u8())
 			// dump('${el.width} ${el.height}')
 			ctx.gg.draw_rect_filled(el.x, el.y, el.width, el.height, color)
+		} else {
+			dump('${el.tag.name} ${bg}')
 		}
 	}
 
@@ -110,8 +124,20 @@ fn (mut this HElement) draw_kids(ctx &ui.GraphicsContext) {
 		tag_name := this.tag.children[i].name
 
 		cc := child.children.len
+		
+		display_rule := (this.page.styles.get_rule(tag_name, 'display') or { '' }).replace(';', '')
+		
+		margin_top := this.page.styles.get_rule_num(tag_name, 'margin-top', ctx.font_size) or { 0 }
+		margin_bottom := this.page.styles.get_rule_num(tag_name, 'margin-bottom', ctx.font_size) or { 0 }
 
-		if tag_name in block_tags {
+		mut is_block := display_rule == 'block'
+		
+		if display_rule.len == 0 {
+			is_block = tag_name in block_tags
+		}
+		
+
+		if is_block {
 			// this.page.layout.x = 8 // default margin
 			// this.page.layout.y += this.page.layout.rh
 			// this.page.layout.h = 0
@@ -119,7 +145,7 @@ fn (mut this HElement) draw_kids(ctx &ui.GraphicsContext) {
 			// this.page.layout.h = 0
 			child.width = this.page.width
 
-			y += rh // this.page.layout.rh
+			y += rh + margin_top// this.page.layout.rh
 			x = xx
 			rh = 0
 		} else {
@@ -128,14 +154,19 @@ fn (mut this HElement) draw_kids(ctx &ui.GraphicsContext) {
 			}
 		}
 
-		child.draw_with_offset(ctx, x, y)
+		if this.tag.name == 'center' {
+			child.draw_with_offset(ctx, x + (this.width / 2) - (child.width / 2), y)
+		} else {
+			child.draw_with_offset(ctx, x, y)
+		}
 
 		if child.height > rh {
-			rh = child.height // + 5
+			rh = child.height
+			// + 5
 		}
 
 		if tag_name in block_tags {
-			y += child.height
+			y += rh + margin_bottom // child.height
 			rh = 0
 		} else {
 			x += child.width
@@ -172,6 +203,13 @@ fn (mut this HPage) load(url string) {
 	this.kids.clear()
 	this.url = url
 	this.styles.clear()
+	this.field.text = url
+
+	dump(this.scroll_i)
+	
+	if !isnil(this.parent) {
+		this.parent.scroll_i = 0
+	}
 
 	default_css := os.read_lines(os.resource_abs_path('src/assets/default.css')) or { [''] }
 	this.styles.parse(default_css)
@@ -239,6 +277,9 @@ fn (mut this HPage) draw(ctx &ui.GraphicsContext) {
 		y += child.height
 	}
 
+	this.width = this.parent.width
+	
+	
 	this.height = y - this.y
 }
 
@@ -343,6 +384,36 @@ fn (mut this HPage) make_element_from_tag(tag &html.Tag) &ui.Component {
 
 	if nam == 'div' {
 		mut el := &DivElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+	
+	if nam == 'a' {
+		mut el := &AElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+	
+	if nam == 'button' {
+		mut el := &ButtonElement{
+			tag: tag
+			inner_text: con
+			page: this
+		}
+		el.add_kids()
+		return el
+	}
+
+	if nam == 'center' {
+		mut el := &CenterElement{
 			tag: tag
 			inner_text: con
 			page: this
